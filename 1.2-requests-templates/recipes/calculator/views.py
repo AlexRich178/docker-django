@@ -10,7 +10,7 @@ DATA = {
         'макароны, г': 0.3,
         'сыр, г': 0.05,
     },
-    'buter': {
+    'butter': {
         'хлеб, ломтик': 1,
         'колбаса, ломтик': 1,
         'сыр, ломтик': 1,
@@ -19,6 +19,18 @@ DATA = {
     # можете добавить свои рецепты ;)
 }
 
+
+def recipe(request):
+    rec = request.path.split('/')[1]
+    servings = int(request.GET.get('servings', 1))
+    amount = []
+    for i in DATA[rec].values():
+        amount.append(i * servings)
+    result = dict(zip(DATA[rec], amount))
+    context = {
+        'recipe': result
+    }
+    return render(request, 'calculator/index.html', context)
 # Напишите ваш обработчик. Используйте DATA как источник данных
 # Результат - render(request, 'calculator/index.html', context)
 # В качестве контекста должен быть передан словарь с рецептом:
