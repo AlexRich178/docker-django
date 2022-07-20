@@ -1,2 +1,89 @@
-def test_example():
-    assert False, "Just test example"
+import pytest
+from rest_framework.test import APIClient
+from model_bakery import baker
+
+from students.models import Course, Student
+
+
+@pytest.fixture
+def client():
+    return APIClient()
+
+
+@pytest.fixture
+def course_factory():
+    def factory(*args, **kwargs):
+        return baker.make(Course, *args, **kwargs)
+
+    return factory
+
+
+@pytest.fixture
+def student_factory():
+    def factory(*args, **kwargs):
+        return baker.make(Student, *args, **kwargs)
+
+    return factory
+
+
+@pytest.mark.django_db
+def test_get_one_course(client, course_factory):
+    courses = course_factory(_quantity=10)
+    response = client.get(f'/api/v1/courses/{courses[2].id}/')
+    assert response.status_code == 200
+    data = response.json()
+    assert data['id'] == courses[2].id
+
+
+@pytest.mark.django_db
+def test_get_list_course(client, course_factory):
+    courses = course_factory(_quantity=10)
+    response = client.get('/api/v1/courses/')
+    assert response.status_code == 200
+    data = response.json()
+    for k, v in enumerate(data):
+        assert v['id'] == courses[k].id
+
+
+@pytest.mark.django_db
+def test_filter_id(client, course_factory):
+    courses = course_factory(_quantity=10)
+    response = client.get('/api/v1/courses/', data={'id': courses[3].id})
+    assert response.status_code == 200
+    data = response.json()
+    assert courses[3].id == data[0]['id']
+
+
+@pytest.mark.django_db
+def test_filter_name(client, course_factory):
+    courses = course_factory(_quantity=15)
+    response = client.get('/api/v1/courses/', data={'name': courses[3].name})
+    assert response.status_code == 200
+    data = response.json()
+    assert courses[3].name == data[0]['name']
+
+
+@pytest.mark.django_db
+def test_create_course(client):
+    response = client.post('/api/v1/courses/', data={'name': 'python'})
+    assert response.status_code == 201
+    data = response.json()
+    assert data['name'] == 'python'
+
+
+@pytest.mark.django_db
+def test_patch_course(client, course_factory):
+    courses = course_factory(_quantity=10)
+    response = client.patch(f'/api/v1/courses/{courses[2].id}/', data={'name': 'NEW NAME'})
+    assert response.status_code == 200
+    data = response.json()
+    assert data['name'] == 'NEW NAME'
+
+
+@pytest.mark.django_db
+def test_delete_course(client, course_factory):
+    courses = course_factory(_quantity=10)
+    response = client.delete(f'/api/v1/courses/{courses[2].id}/')
+    assert response.status_code == 204
+    response_2 = client.get(f'/api/v1/courses/{courses[2].id}/')
+    assert response_2.status_code == 404
